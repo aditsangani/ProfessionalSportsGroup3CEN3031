@@ -5,6 +5,7 @@ import Card from "./components/Card";
 import Button from "./components/Button";
 import PageHeader from "./components/PageHeader";
 import FormMessage from "./components/FormMessage";
+import PlayerSearch from "./PlayerSearch";
 
 // who is on the clock, same snake rules as the server
 function whoIsOnTheClock(draft) {
@@ -16,9 +17,6 @@ function whoIsOnTheClock(draft) {
   const spot = draft.pickNumber % teamCount;
   return round % 2 === 0 ? draft.teams[spot] : draft.teams[teamCount - 1 - spot];
 }
-
-// placeholder player list until the player search story is done
-const queue = ["Player C", "Player D", "Player E", "Player F"];
 
 function DraftRoom({ leagueId }) {
   const { token, user } = useAuth();
@@ -87,24 +85,7 @@ function DraftRoom({ leagueId }) {
         </div>
 
         <div style={{ flex: 1 }}>
-          <Card title="Your queue">
-            {queue.map(function (player) {
-              const taken = takenPlayers.includes(player);
-              return (
-                <div key={player} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ textDecoration: taken ? "line-through" : "none" }}>{player}</span>
-                  <Button
-                    disabled={!myTurn || taken}
-                    onClick={function () {
-                      pickPlayer(player);
-                    }}
-                  >
-                    Draft
-                  </Button>
-                </div>
-              );
-            })}
-          </Card>
+          <PlayerSearch canPick={myTurn} takenPlayers={takenPlayers} onPick={pickPlayer} />
         </div>
       </div>
     </div>
