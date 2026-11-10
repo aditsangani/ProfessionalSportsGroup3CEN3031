@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useAuth, API_URL } from "./AuthContext";
+import { useAuth, API_URL } from "./context/AuthContext";
 import { checkSignup } from "./validate";
 import FormField from "./components/FormField";
 import FormMessage from "./components/FormMessage";
