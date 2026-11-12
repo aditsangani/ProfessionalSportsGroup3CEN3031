@@ -1,6 +1,7 @@
 const express = require("express");
 const League = require("../models/League");
 const { requireLogin } = require("../middleware/auth");
+const { isLeagueFull, checkSettings } = require("../leagueRules");
 
 const router = express.Router();
 
@@ -23,6 +24,12 @@ async function makeUniqueCode() {
   }
   return code;
 }
+
+// GET /api/leagues
+router.get("/", requireLogin, async function (req, res) {
+  const leagues = await League.find({ members: req.userId });
+  res.json(leagues);
+});
 
 // POST /api/leagues
 router.post("/", requireLogin, async function (req, res) {
@@ -50,6 +57,10 @@ router.post("/join", requireLogin, async function (req, res) {
     return res.status(404).json({ message: "no league has that invite code" });
   }
 
+  if (isLeagueFull(league)) {
+    return res.status(400).json({ message: "this league is full" });
+  }
+
   const alreadyIn = league.members.some(function (id) {
     return String(id) === String(req.userId);
   });
@@ -61,6 +72,43 @@ router.post("/join", requireLogin, async function (req, res) {
   await league.save();
 
   res.json(league);
+});
+
+// GET /api/leagues/:id/settings
+router.get("/:id/settings", requireLogin, async function (req, res) {
+  const league = await League.findById(req.params.id);
+  if (!league) {
+    return res.status(404).json({ message: "league not found" });
+  }
+
+  res.json({
+    settings: league.settings,
+    isCommissioner: String(league.commissioner) === String(req.userId),
+  });
+});
+
+// PUT /api/leagues/:id/settings
+router.put("/:id/settings", requireLogin, async function (req, res) {
+  const league = await League.findById(req.params.id);
+  if (!league) {
+    return res.status(404).json({ message: "league not found" });
+  }
+  if (String(league.commissioner) !== String(req.userId)) {
+    return res.status(403).json({ message: "only the commissioner can change the settings" });
+  }
+
+  const errors = checkSettings(req.body, league.members.length);
+  if (errors.length > 0) {
+    return res.status(400).json({ message: errors.join(", ") });
+  }
+
+  league.settings.maxTeams = Number(req.body.maxTeams);
+  league.settings.rosterSize = Number(req.body.rosterSize);
+  league.settings.rounds = Number(req.body.rounds);
+  league.settings.scoringType = req.body.scoringType;
+  await league.save();
+
+  res.json({ settings: league.settings });
 });
 
 module.exports = router;
