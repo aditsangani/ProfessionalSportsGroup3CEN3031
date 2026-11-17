@@ -6,7 +6,7 @@ import Button from "./components/Button";
 import Card from "./components/Card";
 import PageHeader from "./components/PageHeader";
 
-function LoginForm() {
+function LoginForm({ onNavigate }) {
   const { saveLogin } = useAuth();
   const [values, setValues] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
@@ -55,6 +55,16 @@ function LoginForm() {
           <FormField label="Email" name="email" type="email" value={values.email} onChange={handleChange} error={errors.email} />
           <FormField label="Password" name="password" type="password" value={values.password} onChange={handleChange} error={errors.password} />
           <Button type="submit">Log in</Button>
+          <p>
+            <button
+              type="button"
+              onClick={function () {
+                onNavigate("forgot");
+              }}
+            >
+              Forgot password?
+            </button>
+          </p>
         </form>
       </Card>
     </div>
