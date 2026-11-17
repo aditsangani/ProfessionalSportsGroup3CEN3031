@@ -1,21 +1,27 @@
 import React, { useState } from "react";
-import { useAuth, API_URL } from "./context/AuthContext";
+import { useAuth } from "./context/AuthContext";
+import { api } from "./api";
 import useDraftSocket from "./useDraftSocket";
 import Card from "./components/Card";
-import Button from "./components/Button";
 import PageHeader from "./components/PageHeader";
 import FormMessage from "./components/FormMessage";
 import PlayerSearch from "./PlayerSearch";
 
-// who is on the clock, same snake rules as the server
 function whoIsOnTheClock(draft) {
   const teamCount = draft.teams.length;
+
   if (draft.pickNumber >= teamCount * draft.rounds) {
     return null;
   }
+
   const round = Math.floor(draft.pickNumber / teamCount);
   const spot = draft.pickNumber % teamCount;
-  return round % 2 === 0 ? draft.teams[spot] : draft.teams[teamCount - 1 - spot];
+
+  if (round % 2 === 0) {
+    return draft.teams[spot];
+  }
+
+  return draft.teams[teamCount - 1 - spot];
 }
 
 function DraftRoom({ leagueId }) {
@@ -23,49 +29,77 @@ function DraftRoom({ leagueId }) {
   const draft = useDraftSocket(leagueId, token);
   const [message, setMessage] = useState("");
 
-  async function pickPlayer(playerId) {
+  async function pickPlayer(playerName) {
     setMessage("");
-    const response = await fetch(API_URL + "/api/draft/" + leagueId + "/pick", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
-      },
-      body: JSON.stringify({ playerId: playerId }),
-    });
-    if (!response.ok) {
-      const data = await response.json();
-      setMessage(data.message);
+
+    try {
+      await api("/api/draft/" + leagueId + "/pick", {
+        method: "POST",
+        body: { playerId: playerName },
+      });
+    } catch (err) {
+      setMessage(err.message);
     }
-    // on success the socket sends the new draft to everyone, so nothing else to do here
   }
 
   if (!draft) {
-    return <p style={{ textAlign: "center", marginTop: 40 }}>Waiting for the draft to start...</p>;
+    return (
+      <p style={{ textAlign: "center", marginTop: 40 }}>
+        Waiting for the draft to start...
+      </p>
+    );
   }
 
   const onTheClock = whoIsOnTheClock(draft);
   const myTurn = onTheClock === user.id;
+
   const takenPlayers = draft.picks.map(function (pick) {
     return pick.player;
   });
 
+  let subtitle = "Waiting for the next pick";
+
+  if (myTurn) {
+    subtitle = "You are on the clock";
+  }
+
+  if (!onTheClock) {
+    subtitle = "The draft is over";
+  }
+
   return (
-    <div style={{ maxWidth: 900, margin: "30px auto", padding: "0 16px" }}>
+    <div style={{
+      maxWidth: 900,
+      margin: "30px auto",
+      padding: "0 16px",
+    }}>
       <PageHeader
         title="Draft Room"
-        subtitle={onTheClock ? (myTurn ? "You are on the clock" : "Waiting for the next pick") : "The draft is over"}
+        subtitle={subtitle}
       />
+
       <FormMessage text={message} />
 
-      <div style={{ display: "flex", gap: 16 }}>
-        <div style={{ flex: 1 }}>
+      <div style={{
+        display: "flex",
+        gap: 16,
+        flexWrap: "wrap",
+      }}>
+        <div style={{ flex: 1, minWidth: 260 }}>
           <Card title="Pick order">
             <ol style={{ margin: 0, paddingLeft: 20 }}>
               {draft.teams.map(function (team) {
                 return (
-                  <li key={team} style={{ fontWeight: team === onTheClock ? "bold" : "normal" }}>
-                    {team === user.id ? "You" : "Team " + team.slice(-4)}
+                  <li
+                    key={team}
+                    style={{
+                      fontWeight:
+                        team === onTheClock ? "bold" : "normal",
+                    }}
+                  >
+                    {team === user.id
+                      ? "You"
+                      : "Team " + team.slice(-4)}
                   </li>
                 );
               })}
@@ -73,19 +107,30 @@ function DraftRoom({ leagueId }) {
           </Card>
 
           <Card title="Picks so far">
-            {draft.picks.length === 0 && <div>No picks yet</div>}
+            {draft.picks.length === 0 && (
+              <p>No picks yet</p>
+            )}
+
             {draft.picks.map(function (pick) {
               return (
                 <div key={pick.number}>
-                  #{pick.number} {pick.team === user.id ? "You" : "Team " + pick.team.slice(-4)}: {pick.player}
+                  #{pick.number}{" "}
+                  {pick.team === user.id
+                    ? "You"
+                    : "Team " + pick.team.slice(-4)}
+                  : {pick.player}
                 </div>
               );
             })}
           </Card>
         </div>
 
-        <div style={{ flex: 1 }}>
-          <PlayerSearch canPick={myTurn} takenPlayers={takenPlayers} onPick={pickPlayer} />
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <PlayerSearch
+            canPick={myTurn}
+            takenPlayers={takenPlayers}
+            onPick={pickPlayer}
+          />
         </div>
       </div>
     </div>
