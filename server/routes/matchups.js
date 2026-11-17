@@ -1,10 +1,28 @@
 const express = require("express");
 const { requireLogin } = require("../middleware/auth");
+const { loadScores, readWeek } = require("../services/loadScores");
+const { buildMatchups } = require("../services/leagueScores");
 
 const router = express.Router();
 
-router.get("/:leagueId", requireLogin, function (req, res) {
-  res.json({ leagueId: req.params.leagueId, matchups: [] });
+router.get("/:leagueId", requireLogin, async function (req, res) {
+  const week = readWeek(req.query);
+
+  try {
+    const result = await loadScores(req.params.leagueId, req.userId, week);
+    if (result.status !== 200) {
+      return res.status(result.status).json({ message: result.message });
+    }
+
+    res.json({
+      leagueId: req.params.leagueId,
+      week: week,
+      source: result.source,
+      matchups: buildMatchups(result.teams, week),
+    });
+  } catch (err) {
+    res.status(502).json({ message: "could not get the player stats right now" });
+  }
 });
 
 module.exports = router;
