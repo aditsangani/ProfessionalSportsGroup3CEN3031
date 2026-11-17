@@ -1,122 +1,193 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+
+import React, { useState } from "react";
+import { useAuth } from "./context/AuthContext";
+import LoginForm from "./LoginForm.jsx";
+import SignupForm from "./SignupForm.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
+import Home from "./pages/Home.jsx";
+import DraftRoom from "./DraftRoom.jsx";
+import Roster from "./pages/Roster.jsx";
+import LeagueSettings from "./pages/LeagueSettings.jsx";
+import Standings from "./pages/Standings.jsx";
+import Matchup from "./pages/Matchup.jsx";
+import Button from "./components/Button.jsx";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { user, logout } = useAuth();
+
+  let firstPage = "login";
+
+  if (window.location.pathname === "/reset-password") {
+    firstPage = "reset";
+  }
+
+  const [page, setPage] = useState(firstPage);
+  const [loggedInPage, setLoggedInPage] = useState("home");
+  const [leagueId, setLeagueId] = useState("");
+
+  const resetToken = new URLSearchParams(
+    window.location.search
+  ).get("token");
+
+  function openPage(pageName, selectedLeagueId) {
+    if (selectedLeagueId) {
+      setLeagueId(selectedLeagueId);
+    }
+
+    setLoggedInPage(pageName);
+  }
+
+  function openLoginPage(pageName) {
+    window.history.replaceState({}, "", "/");
+    setPage(pageName);
+  }
+
+  function handleLogout() {
+    logout();
+    setLeagueId("");
+    setLoggedInPage("home");
+    openLoginPage("login");
+  }
+
+  if (!user) {
+    return (
+      <div style={{ textAlign: "left", padding: 20 }}>
+        <h2 style={{ textAlign: "center" }}>
+          Dynasty Drafters
+        </h2>
+
+        {page !== "reset" && (
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <button onClick={function () {
+              openLoginPage("login");
+            }}>
+              Log in
+            </button>
+
+            <span style={{ margin: 12 }}>|</span>
+
+            <button onClick={function () {
+              openLoginPage("signup");
+            }}>
+              Sign up
+            </button>
+          </div>
+        )}
+
+        {page === "login" && (
+          <LoginForm onNavigate={openLoginPage} />
+        )}
+
+        {page === "signup" && <SignupForm />}
+
+        {page === "forgot" && (
+          <ForgotPassword onNavigate={openLoginPage} />
+        )}
+
+        {page === "reset" && (
+          <ResetPassword
+            token={resetToken}
+            onNavigate={openLoginPage}
+          />
+        )}
+      </div>
+    );
+  }
+
+  let content = null;
+
+  if (loggedInPage === "home") {
+    content = <Home onOpen={openPage} />;
+  }
+
+  if (loggedInPage === "draft") {
+    content = <DraftRoom leagueId={leagueId} />;
+  }
+
+  if (loggedInPage === "roster") {
+    content = <Roster leagueId={leagueId} />;
+  }
+
+  if (loggedInPage === "settings") {
+    content = <LeagueSettings leagueId={leagueId} />;
+  }
+
+  if (loggedInPage === "standings") {
+    content = <Standings leagueId={leagueId} />;
+  }
+
+  if (loggedInPage === "matchup") {
+    content = <Matchup leagueId={leagueId} />;
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div style={{ textAlign: "left", padding: 20 }}>
+      <header style={{
+        borderBottom: "1px solid #ddd",
+        paddingBottom: 16,
+        marginBottom: 24,
+      }}>
+        <h2>Dynasty Drafters</h2>
 
-      <div className="ticks"></div>
+        <p style={{ marginBottom: 12 }}>
+          Welcome, {user.username}
+        </p>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <div style={{
+          display: "flex",
+          gap: 8,
+          flexWrap: "wrap",
+        }}>
+          <Button onClick={function () {
+            openPage("home");
+          }}>
+            Home
+          </Button>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+          {leagueId && (
+            <>
+              <Button onClick={function () {
+                openPage("draft");
+              }}>
+                Draft
+              </Button>
+
+              <Button onClick={function () {
+                openPage("roster");
+              }}>
+                Roster
+              </Button>
+
+              <Button onClick={function () {
+                openPage("standings");
+              }}>
+                Standings
+              </Button>
+
+              <Button onClick={function () {
+                openPage("matchup");
+              }}>
+                Matchups
+              </Button>
+
+              <Button onClick={function () {
+                openPage("settings");
+              }}>
+                Settings
+              </Button>
+            </>
+          )}
+
+          <Button onClick={handleLogout}>
+            Log out
+          </Button>
+        </div>
+      </header>
+
+      <main>{content}</main>
+    </div>
+  );
 }
 
-export default App
+export default App;
