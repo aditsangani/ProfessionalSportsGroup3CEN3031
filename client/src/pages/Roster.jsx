@@ -1,46 +1,81 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useAuth } from "../context/AuthContext";
-import { api } from "../api";
+import useDraftSocket from "../useDraftSocket";
 import Card from "../components/Card";
+import Button from "../components/Button";
 import PageHeader from "../components/PageHeader";
 import FormMessage from "../components/FormMessage";
 
 function Roster({ leagueId }) {
-  const { user } = useAuth();
-  const [picks, setPicks] = useState([]);
-  const [message, setMessage] = useState("");
+  const { user, token } = useAuth();
 
-  useEffect(
-    function () {
-      api("/api/draft/" + leagueId)
-        .then(function (draft) {
-          setPicks(draft.picks);
-        })
-        .catch(function (err) {
-          setMessage(err.message);
-        });
-    },
-    [leagueId]
-  );
+  const {
+    draft,
+    loading,
+    error,
+    notStarted,
+    refreshDraft,
+  } = useDraftSocket(leagueId, token);
+
+  let picks = [];
+
+  if (draft && Array.isArray(draft.picks)) {
+    picks = draft.picks;
+  }
 
   const myPicks = picks.filter(function (pick) {
-    return pick.team === user.id;
+    return String(pick.team) === String(user.id);
   });
 
   return (
-    <div style={{ maxWidth: 600, margin: "30px auto", padding: "0 16px" }}>
-      <PageHeader title="My roster" />
-      <FormMessage text={message} />
-      <Card>
-        {myPicks.length === 0 && <div>No players drafted yet</div>}
-        {myPicks.map(function (pick) {
-          return (
-            <div key={pick.number}>
-              Pick #{pick.number}: {pick.player}
-            </div>
-          );
-        })}
-      </Card>
+    <div
+      style={{
+        maxWidth: 650,
+        margin: "30px auto",
+        padding: "0 16px",
+      }}
+    >
+      <PageHeader
+        title="My Roster"
+        subtitle="Players you have drafted"
+      />
+
+      <div style={{ marginBottom: 16 }}>
+        <Button onClick={refreshDraft}>Refresh roster</Button>
+      </div>
+
+      <FormMessage text={error} />
+
+      {loading && <p>Loading roster...</p>}
+
+      {!loading && notStarted && (
+        <p>The draft has not started yet.</p>
+      )}
+
+      {!loading && draft && (
+        <Card title="Your players">
+          {myPicks.length === 0 && (
+            <p>You have not drafted any players yet.</p>
+          )}
+
+          {myPicks.map(function (pick, index) {
+            return (
+              <div
+                key={pick.number}
+                style={{
+                  padding: "10px 0",
+                  borderBottom: "1px solid #ddd",
+                }}
+              >
+                {index + 1}. {pick.player}
+                <span style={{ color: "#666" }}>
+                  {" "} (Pick #{pick.number})
+                </span>
+              </div>
+            );
+          })}
+        </Card>
+      )}
     </div>
   );
 }

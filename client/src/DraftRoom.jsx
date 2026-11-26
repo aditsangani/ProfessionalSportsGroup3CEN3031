@@ -3,11 +3,16 @@ import { useAuth } from "./context/AuthContext";
 import { api } from "./api";
 import useDraftSocket from "./useDraftSocket";
 import Card from "./components/Card";
+import Button from "./components/Button";
 import PageHeader from "./components/PageHeader";
 import FormMessage from "./components/FormMessage";
 import PlayerSearch from "./PlayerSearch";
 
 function whoIsOnTheClock(draft) {
+  if (!draft || !draft.teams || draft.teams.length === 0) {
+    return null;
+  }
+
   const teamCount = draft.teams.length;
 
   if (draft.pickNumber >= teamCount * draft.rounds) {
@@ -26,32 +31,77 @@ function whoIsOnTheClock(draft) {
 
 function DraftRoom({ leagueId }) {
   const { token, user } = useAuth();
-  const draft = useDraftSocket(leagueId, token);
+
+  const {
+    draft,
+    loading,
+    error,
+    notStarted,
+    refreshDraft,
+    setDraft,
+  } = useDraftSocket(leagueId, token);
+
   const [message, setMessage] = useState("");
+  const [picking, setPicking] = useState(false);
 
   async function pickPlayer(playerName) {
+    if (picking || !draft) {
+      return false;
+    }
+
+    setPicking(true);
     setMessage("");
 
     try {
-      await api("/api/draft/" + leagueId + "/pick", {
-        method: "POST",
-        body: { playerId: playerName },
-      });
+      const updatedDraft = await api(
+        "/api/draft/" + leagueId + "/pick",
+        {
+          method: "POST",
+          body: { playerId: playerName },
+        }
+      );
+
+      setDraft(updatedDraft);
+      setMessage(playerName + " was drafted successfully.");
+      return true;
     } catch (err) {
       setMessage(err.message);
+      return false;
+    } finally {
+      setPicking(false);
     }
   }
 
-  if (!draft) {
+  if (loading && !draft) {
     return (
       <p style={{ textAlign: "center", marginTop: 40 }}>
-        Waiting for the draft to start...
+        Loading draft...
       </p>
     );
   }
 
+  if (!draft) {
+    let text = "Waiting for the commissioner to start the draft.";
+
+    if (error) {
+      text = error;
+    }
+
+    if (!notStarted && !error) {
+      text = "Draft information is not available.";
+    }
+
+    return (
+      <div style={{ textAlign: "center", marginTop: 40 }}>
+        <PageHeader title="Draft Room" />
+        <p style={{ marginBottom: 16 }}>{text}</p>
+        <Button onClick={refreshDraft}>Refresh draft</Button>
+      </div>
+    );
+  }
+
   const onTheClock = whoIsOnTheClock(draft);
-  const myTurn = onTheClock === user.id;
+  const myTurn = String(onTheClock) === String(user.id);
 
   const takenPlayers = draft.picks.map(function (pick) {
     return pick.player;
@@ -60,46 +110,62 @@ function DraftRoom({ leagueId }) {
   let subtitle = "Waiting for the next pick";
 
   if (myTurn) {
-    subtitle = "You are on the clock";
+    subtitle = "You are on the clock!";
   }
 
-  if (!onTheClock) {
-    subtitle = "The draft is over";
+  if (onTheClock === null) {
+    subtitle = "The draft is complete!";
   }
+
+  const totalPicks = draft.teams.length * draft.rounds;
 
   return (
-    <div style={{
-      maxWidth: 900,
-      margin: "30px auto",
-      padding: "0 16px",
-    }}>
-      <PageHeader
-        title="Draft Room"
-        subtitle={subtitle}
-      />
+    <div
+      style={{
+        maxWidth: 900,
+        margin: "30px auto",
+        padding: "0 16px",
+      }}
+    >
+      <PageHeader title="Draft Room" subtitle={subtitle} />
 
+      <FormMessage text={error} />
       <FormMessage text={message} />
 
-      <div style={{
-        display: "flex",
-        gap: 16,
-        flexWrap: "wrap",
-      }}>
+      <p style={{ marginBottom: 16 }}>
+        Pick {draft.pickNumber} of {totalPicks} completed
+      </p>
+
+      <div style={{ marginBottom: 16 }}>
+        <Button onClick={refreshDraft}>Refresh draft</Button>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
         <div style={{ flex: 1, minWidth: 260 }}>
-          <Card title="Pick order">
+          <Card title="Draft order">
             <ol style={{ margin: 0, paddingLeft: 20 }}>
               {draft.teams.map(function (team) {
+                const current = String(team) === String(onTheClock);
+
                 return (
                   <li
                     key={team}
                     style={{
-                      fontWeight:
-                        team === onTheClock ? "bold" : "normal",
+                      fontWeight: current ? "bold" : "normal",
+                      marginBottom: 8,
                     }}
                   >
-                    {team === user.id
+                    {String(team) === String(user.id)
                       ? "You"
-                      : "Team " + team.slice(-4)}
+                      : "Team " + String(team).slice(-4)}
+
+                    {current && " (On the clock)"}
                   </li>
                 );
               })}
@@ -108,17 +174,21 @@ function DraftRoom({ leagueId }) {
 
           <Card title="Picks so far">
             {draft.picks.length === 0 && (
-              <p>No picks yet</p>
+              <p>No players drafted yet.</p>
             )}
 
             {draft.picks.map(function (pick) {
+              const name =
+                String(pick.team) === String(user.id)
+                  ? "You"
+                  : "Team " + String(pick.team).slice(-4);
+
               return (
-                <div key={pick.number}>
-                  #{pick.number}{" "}
-                  {pick.team === user.id
-                    ? "You"
-                    : "Team " + pick.team.slice(-4)}
-                  : {pick.player}
+                <div
+                  key={pick.number}
+                  style={{ marginBottom: 10 }}
+                >
+                  #{pick.number} {name}: {pick.player}
                 </div>
               );
             })}
@@ -127,7 +197,7 @@ function DraftRoom({ leagueId }) {
 
         <div style={{ flex: 1, minWidth: 260 }}>
           <PlayerSearch
-            canPick={myTurn}
+            canPick={myTurn && !picking}
             takenPlayers={takenPlayers}
             onPick={pickPlayer}
           />
