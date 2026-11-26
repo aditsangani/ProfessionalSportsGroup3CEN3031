@@ -1,24 +1,53 @@
 import { API_URL } from "./context/AuthContext";
 
 export async function api(path, options) {
-  const method = (options && options.method) || "GET";
-  const body = options && options.body;
+  const settings = options || {};
   const token = localStorage.getItem("token");
 
-  const headers = { "Content-Type": "application/json" };
+  const headers = {
+    "Content-Type": "application/json",
+  };
+
   if (token) {
     headers.Authorization = "Bearer " + token;
   }
 
-  const response = await fetch(API_URL + path, {
-    method: method,
+  const request = {
+    method: settings.method || "GET",
     headers: headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  };
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message);
+  if (settings.body !== undefined) {
+    request.body = JSON.stringify(settings.body);
   }
+
+  let response;
+
+  try {
+    response = await fetch(API_URL + path, request);
+  } catch (err) {
+    throw new Error("Cannot connect to the server. Make sure the backend is running.");
+  }
+
+  let data = null;
+
+  try {
+    data = await response.json();
+  } catch (err) {
+    data = null;
+  }
+
+  if (!response.ok) {
+    let message = "Request failed (" + response.status + ")";
+
+    if (data && data.message) {
+      message = data.message;
+    }
+
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
+  }
+
   return data;
 }

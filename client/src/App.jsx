@@ -1,16 +1,18 @@
-
 import React, { useState } from "react";
 import { useAuth } from "./context/AuthContext";
+
 import LoginForm from "./LoginForm.jsx";
 import SignupForm from "./SignupForm.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
+
 import Home from "./pages/Home.jsx";
 import DraftRoom from "./DraftRoom.jsx";
 import Roster from "./pages/Roster.jsx";
 import LeagueSettings from "./pages/LeagueSettings.jsx";
 import Standings from "./pages/Standings.jsx";
 import Matchup from "./pages/Matchup.jsx";
+
 import Button from "./components/Button.jsx";
 
 function App() {
@@ -31,6 +33,12 @@ function App() {
   ).get("token");
 
   function openPage(pageName, selectedLeagueId) {
+    if (pageName === "home") {
+      setLeagueId("");
+      setLoggedInPage("home");
+      return;
+    }
+
     if (selectedLeagueId) {
       setLeagueId(selectedLeagueId);
     }
@@ -52,13 +60,18 @@ function App() {
 
   if (!user) {
     return (
-      <div style={{ textAlign: "left", padding: 20 }}>
+      <div style={{ padding: 20 }}>
         <h2 style={{ textAlign: "center" }}>
           Dynasty Drafters
         </h2>
 
         {page !== "reset" && (
-          <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <div
+            style={{
+              textAlign: "center",
+              marginBottom: 20,
+            }}
+          >
             <button onClick={function () {
               openLoginPage("login");
             }}>
@@ -122,23 +135,27 @@ function App() {
   }
 
   return (
-    <div style={{ textAlign: "left", padding: 20 }}>
-      <header style={{
-        borderBottom: "1px solid #ddd",
-        paddingBottom: 16,
-        marginBottom: 24,
-      }}>
+    <div style={{ padding: 20 }}>
+      <header
+        style={{
+          borderBottom: "1px solid #ddd",
+          paddingBottom: 16,
+          marginBottom: 24,
+        }}
+      >
         <h2>Dynasty Drafters</h2>
 
         <p style={{ marginBottom: 12 }}>
           Welcome, {user.username}
         </p>
 
-        <div style={{
-          display: "flex",
-          gap: 8,
-          flexWrap: "wrap",
-        }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+          }}
+        >
           <Button onClick={function () {
             openPage("home");
           }}>
