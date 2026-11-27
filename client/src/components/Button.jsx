@@ -1,21 +1,10 @@
 import React from "react";
 
-function Button({ children, onClick, type, disabled }) {
+function Button({ children, onClick, type, disabled, variant, className }) {
+  const classes = ["button", variant === "secondary" ? "button-secondary" : "button-primary", className].filter(Boolean).join(" ");
+
   return (
-    <button
-      type={type || "button"}
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        background: disabled ? "#9aa3b2" : "#1B2A4A",
-        color: "white",
-        border: "none",
-        borderRadius: 6,
-        padding: "10px 18px",
-        fontSize: 15,
-        cursor: disabled ? "not-allowed" : "pointer",
-      }}
-    >
+    <button className={classes} type={type || "button"} onClick={onClick} disabled={disabled}>
       {children}
     </button>
   );

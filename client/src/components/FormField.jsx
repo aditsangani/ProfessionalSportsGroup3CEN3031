@@ -1,28 +1,20 @@
 import React from "react";
 
-// a label, an input box, and an error message under it
-function FormField({ label, name, type, value, onChange, error }) {
+function FormField({ label, name, type, value, onChange, error, placeholder }) {
   return (
-    <div style={{ marginBottom: 14 }}>
-      <label htmlFor={name} style={{ display: "block", marginBottom: 4, fontWeight: 600 }}>
-        {label}
-      </label>
+    <div className="form-field">
+      <label htmlFor={name}>{label}</label>
       <input
         id={name}
         name={name}
         type={type || "text"}
         value={value}
         onChange={onChange}
-        style={{
-          width: "100%",
-          padding: 10,
-          fontSize: 15,
-          boxSizing: "border-box",
-          border: error ? "1px solid #c0392b" : "1px solid #b8c0cc",
-          borderRadius: 6,
-        }}
+        placeholder={placeholder}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? name + "-error" : undefined}
       />
-      {error && <div style={{ color: "#c0392b", fontSize: 13, marginTop: 4 }}>{error}</div>}
+      {error && <p id={name + "-error"} className="field-error">{error}</p>}
     </div>
   );
 }
