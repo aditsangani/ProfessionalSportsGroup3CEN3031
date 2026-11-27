@@ -1,11 +1,12 @@
 import React from "react";
 
-function PageHeader({ title, subtitle }) {
+function PageHeader({ title, subtitle, eyebrow }) {
   return (
-    <div style={{ marginBottom: 20 }}>
-      <h1 style={{ margin: 0, color: "#1B2A4A" }}>{title}</h1>
-      {subtitle && <p style={{ margin: "4px 0 0 0", color: "#6b7280" }}>{subtitle}</p>}
-    </div>
+    <header className="page-header">
+      <p className="page-eyebrow">{eyebrow || "LEAGUE MANAGEMENT"}</p>
+      <h1>{title}</h1>
+      {subtitle && <p className="page-subtitle">{subtitle}</p>}
+    </header>
   );
 }
 
